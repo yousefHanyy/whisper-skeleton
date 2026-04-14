@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
@@ -21,9 +21,15 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
-    displayName: { type: String, required: true, trim: true, minlength: 1, maxlength: 50 },
-    bio: { type: String, default: '', maxlength: 200 },
-    avatarUrl: { type: String, default: '' },
+    displayName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 50,
+    },
+    bio: { type: String, default: "", maxlength: 200 },
+    avatarUrl: { type: String, default: "" },
     acceptingQuestions: { type: Boolean, default: true },
     tags: {
       type: [String],
@@ -31,34 +37,37 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: (arr) =>
           arr.length <= 10 && arr.every((t) => /^[a-z0-9-]{2,20}$/.test(t)),
-        message: 'Invalid tags',
+        message: "Invalid tags",
       },
     },
   },
   { timestamps: true },
 );
 
-userSchema.set('toJSON', {
+userSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
   transform(_doc, ret) {
     // TODO:
     // Hint: map _id -> id, delete _id, delete passwordHash. Return ret.
     // Purpose: never leak passwordHash through res.json.
-    throw new Error('not implemented');
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.passwordHash;
+    return ret;
   },
 });
 
 userSchema.methods.comparePassword = function (plain) {
   // TODO:
   // Hint: bcrypt.compare(plain, this.passwordHash) — returns a Promise<boolean>.
-  throw new Error('not implemented');
+  return bcrypt.compare(plain, this.passwordHash);
 };
 
 userSchema.statics.hashPassword = function (plain) {
   // TODO:
   // Hint: bcrypt.hash(plain, 10). Cost 10 is a reasonable default.
-  throw new Error('not implemented');
+  return bcrypt.hash(plain, 10);
 };
 
-export const User = mongoose.model('User', userSchema);
+export const User = mongoose.model("User", userSchema);
