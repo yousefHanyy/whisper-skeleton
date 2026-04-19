@@ -2,6 +2,10 @@ import { Question } from "../models/Question.js";
 import { User } from "../models/User.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
+// ! NOTE TO SELF:
+// ! USING TRY CATCH IN EXPORTED FUNCTIONS IS IMPORTANT SO THAT THE SERVER DOESN'T HANG WAITING.
+// ! WHILE HELPER FUNCTIONS DON'T NEED TO CATCH THE ERROR, THEY WOULD RATHER THROW THE ERROR FOR THE CONTROLLER TO CATCH IT AND THE CONTROLLER WILL THEN PASS IT AS A PARAM TO THE NEXT FUNCTION 'NEXT(ERR)' SO THAT THE GLOBAL ERROR HANDLER WOULD THEN DEAL WITH IT.
+
 export async function sendQuestion(req, res, next) {
   // TODO:
   // Hint: find recipient by :username. 404 if missing, 403 if acceptingQuestions === false.
@@ -45,14 +49,54 @@ export async function listInbox(req, res, next) {
   // Pagination: page (default 1, min 1), limit (default 20, min 1, max 50).
   // Sort createdAt desc. Envelope: { data, page, limit, total, totalPages }.
   // See: docs/API.md "GET /api/questions/inbox", tester/tests/inbox.test.js
-  throw new Error("not implemented");
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const filter = { recipient: req.user._id };
+    // checking status:
+    if (status) {
+      if (!["pending", "answered", "ignored"].includes(status)) {
+        throw new HttpError(404, "Invalid status filter");
+      }
+      filter.status = status;
+    }
+    // how many entities to skip if we are on a certain page:
+    const skip = (Math.max(1, page) - 1) * limit;
+
+    // using promise all to wait for more than one promise at the same time:
+    const [data, total] = await Promise.all([
+      Question.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Question.countDocuments(filter),
+    ]);
+
+    res.json({
+      data,
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function getOwnedQuestion(id, userId) {
   // TODO:
   // Hint: load by id -> 404 if missing -> 403 if recipient !== userId.
   // Compare as strings (ObjectId). Returns the question doc.
-  throw new Error("not implemented");
+  const question = await Question.findById(id);
+  if (!question) {
+    throw new HttpError(404, "Question not found");
+  }
+
+  if (question.recipient.toString() !== userId.toString()) {
+    throw new HttpError(403, "This is not your question");
+  }
+
+  return question;
 }
 
 export async function answerQuestion(req, res, next) {
