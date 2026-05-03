@@ -165,5 +165,37 @@ export async function listPublicFeed(req, res, next) {
   //   recipient=user._id, status='answered', visibility='public'.
   // Exclude recipient field from response. Sort answeredAt desc. Same pagination envelope as inbox.
   // See: docs/API.md "GET /api/users/:username/questions", tester/tests/public-feed.test.js
-  throw new Error("not implemented");
+  try {
+    const { username } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    const user = await User.findOne({ username });
+    if (!user) throw new HttpError(404, "User not found");
+
+    const filter = {
+      recipient: user._id,
+      status: "answered",
+      visibility: "public",
+    };
+
+    const skip = (Math.max(1, page) - 1) * limit;
+    const [data, total] = await Promise.all([
+      Question.find(filter)
+        .select("-recipient")
+        .sort({ answeredAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Question.countDocuments(filter),
+    ]);
+
+    res.json({
+      data,
+      page: Number(page),
+      limit: Number(limit),
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    next(err);
+  }
 }
