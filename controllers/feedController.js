@@ -11,11 +11,11 @@ export async function listGlobalFeed(req, res, next) {
   // See: docs/API.md "GET /api/feed", tester/tests/global-feed.test.js
   try {
     const { tag, page = 1, limit = 20 } = req.query;
-    const filter = { status: "answered", visibility: "public" };
+    const filter = { status: "answered" };
 
     if (tag) {
       const userIds = await User.find({ tags: tag }).distinct("_id");
-      filter.recipient = { $in: ids };
+      filter.recipient = { $in: userIds };
     }
 
     const skip = (Math.max(1, page) - 1) * limit;
@@ -33,7 +33,7 @@ export async function listGlobalFeed(req, res, next) {
       page: Number(page),
       limit: Number(limit),
       total,
-      totalPage: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit),
     });
   } catch (err) {
     next(err);

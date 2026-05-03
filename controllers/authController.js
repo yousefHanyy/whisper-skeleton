@@ -14,7 +14,7 @@ export async function signup(req, res, next) {
     const { username, email, password, displayName } = req.body;
 
     // * hashing the password:
-    const passwordHash = await User.hashPasword(password);
+    const passwordHash = await User.hashPassword(password);
 
     // * creating the user:
     const user = await User.create({
@@ -33,6 +33,7 @@ export async function signup(req, res, next) {
         error: { message: "Username or email already exists" },
       });
     }
+    next(error);
   }
 }
 

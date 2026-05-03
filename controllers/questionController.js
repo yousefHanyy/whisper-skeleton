@@ -32,12 +32,8 @@ export async function sendQuestion(req, res, next) {
     });
 
     // * Responding:
-    res.status(201).json({
-      id: question.id,
-      body: question.body,
-      status: question.status,
-      createdAt: question.createdAt,
-    });
+    question.recipient = undefined;
+    res.status(201).json(question);
   } catch (err) {
     next(err);
   }
@@ -153,7 +149,7 @@ export async function removeQuestion(req, res, next) {
     const question = await getOwnedQuestion(req.params.id, req.user._id);
     await question.deleteOne();
 
-    res.status(204);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
