@@ -104,7 +104,21 @@ export async function answerQuestion(req, res, next) {
   // Hint: use getOwnedQuestion for 404/403. Set answer, answeredAt=now, status='answered'.
   // If body has visibility, apply it. Save + return the question.
   // See: docs/API.md "POST /api/questions/:id/answer", tester/tests/answer.test.js
-  throw new Error("not implemented");
+  try {
+    const { answer, visibility } = req.body;
+    // getting the question owned by the user:
+    const question = await getOwnedQuestion(req.params.id, req.user._id);
+    //updating status and answer:
+    question.answer = answer;
+    question.status = "answered";
+    question.answeredAt = new Date();
+    if (visibility) question.visibility = visibility;
+
+    await question.save();
+    res.json(question);
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function updateQuestion(req, res, next) {
@@ -112,14 +126,37 @@ export async function updateQuestion(req, res, next) {
   // Hint: ownership check. Accept any of answer / status / visibility. If answer provided,
   // also set answeredAt + status='answered'. Save + return.
   // See: docs/API.md "PATCH /api/questions/:id", tester/tests/answer.test.js
-  throw new Error("not implemented");
+  try {
+    const { answer, status, visibility } = req.body;
+    const question = await getOwnedQuestion(req.params.id, req.user._id);
+    // checking if answer is provided:
+    if (answer !== undefined) {
+      question.answer = answer;
+      question.status = "answered";
+      question.answeredAt = new Date();
+    }
+    if (status) question.status = status;
+    if (visibility) question.visibility = visibility;
+
+    await question.save();
+    res.json(question);
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function removeQuestion(req, res, next) {
   // TODO:
   // Hint: ownership check, deleteOne, 204 no content.
   // See: docs/API.md "DELETE /api/questions/:id", tester/tests/answer.test.js
-  throw new Error("not implemented");
+  try {
+    const question = await getOwnedQuestion(req.params.id, req.user._id);
+    await question.deleteOne();
+
+    res.status(204);
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function listPublicFeed(req, res, next) {
